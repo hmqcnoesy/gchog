@@ -1,6 +1,7 @@
 var request = require('request');
 var fileWriter = require('./fileWriter.js');
 var cheerio = require('cheerio');
+var urlParser = require('url');
 
 process.env.NODE_TLS_REJECT_UNAUTHORIZED = "0";
 
@@ -23,22 +24,21 @@ var url = 'https://www.lds.org/general-conference/sessions/' + year + '/' + mont
 
 var useProxy = process.argv[5] && process.argv[5] == '-proxy';
 
-console.log('Requesting toc');
 request(createRequest(url), function (error, response, body) {
   if (!error && response.statusCode == 200) {
-	console.log('Got toc data');
 	var $ = cheerio.load(body);
 	var $talks = $('span.talk');
 	
-	for (var i = 0; i < $talks.length; i++) {
-		var link = $($talks[i]).find('a');
+	console.log('Found ' + $talks.length + ' talks in ' + language);
+	
+	$talks.each(function(idx, talk) {
+		var link = $(talk).find('a');
 		
-		if (link) {
-			getTalk(i, $(link).attr('href'));
-		} else {
-			stubTalk(i);
+		if (link.attr('href')) {
+			getTalk($(link).attr('href'));
 		}
-	}
+	});
+	
   } else {
 	  console.log(error, response ? response.statusCode : '');
 	  process.exit();
@@ -55,20 +55,16 @@ function createRequest(url) {
 }
 
 
-function getTalk(number, url) {
-	console.log('Getting talk ' + number);
+function getTalk(url) {
+	var segments = urlParser.parse(url, true).path.split('/');
+	var talkName = segments[segments.length-1];
+	talkName = talkName.substr(0, talkName.indexOf('?'));
+	
 	request(createRequest(url), function(error, response, body) {
 		if (!error && response.statusCode == 200) {
-			console.log('\tGot talk data');
-			fileWriter('html', yearMonth, language, number + '.html', body);
+			fileWriter('html', yearMonth, language, talkName + '.html', body);
 		} else {
 			console.log(error, response ? response.statusCode : '');
 		}
 	});
-}
-
-
-function stubTalk(number) {
-	console.log('Stubbing talk ' + number);
-	fileWriter('html', yearMonth, language, number + '.html', '');
 }

@@ -18,9 +18,9 @@ module.exports = function(root, yearMonth, language, fileName, fileContents) {
 		fs.mkdirSync(langDir);
 	}
 	
-	var fileName = path.join(langDir, fileName);
+	var fullFileName = path.join(langDir, fileName);
 	
-	fs.writeFile(fileName, fileContents, function (err) {
+	fs.writeFile(fullFileName, fileContents, function (err) {
 		if (err) throw err;
 		console.log('\tSaved ' + fileName);
 	});
